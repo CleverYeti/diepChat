@@ -137,7 +137,8 @@ function initChat() {
   })
 
   document.addEventListener("keydown", (event) => {
-    let isInGame = document.querySelector("#in-game-screen.active") != null
+    const isInGame = document.querySelector("#in-game-screen.active") != null
+    const isTypingName = document.querySelector("#spawn-nickname:focus") != null
 
     if (isChatOpen) event.stopPropagation()
     if (event.key == "Enter") {
@@ -155,18 +156,17 @@ function initChat() {
       }
     }
     if (event.which == 84) { // t key
-      if (!isChatOpen && isInGame) {
+      if (!isChatOpen && !isTypingName) {
         isChatOpen = true
         event.stopPropagation()
         setTimeout(()=>{
           chatInputEl.focus()
         }, 0)
       }
-      console.log("open chat")
     }
   })
 
-  function appendMessage(sender, message, isYou) {
+  function appendMessage(sender, message = "", isYou = false) {
     const messageEl = document.createElement("div")
     messageEl.classList.add("message")
     if (isYou) messageEl.classList.add("you")
@@ -189,7 +189,9 @@ function initChat() {
   setInterval(refreshRoom, 1000)
 
   function refreshRoom() { // when clicking play
-  
+    const isInGame = document.querySelector("#in-game-screen.active") != null
+    if (!isInGame) return    
+    
     let newPlayerName = null
     const nameEl = document.querySelector("#spawn-nickname")
     if (nameEl) newPlayerName = nameEl.value
@@ -213,17 +215,27 @@ function initChat() {
     }
   }
 
-  function updateConnection(newRoom) {
+  async function updateConnection(newRoom) {
     console.log("connection update")
     if (isInRoom) {
-      appendMessage("You left "+ rooms[currentRoom].name, "", true)
-      chatSocket.emit('send-user-disconnected', currentRoom, currentPlayerName)
+      const room = currentRoom
+      const response1 = await chatSocket.emit('send-user-disconnected', room, currentPlayerName)
+      if (response1.connected) {
+        appendMessage("You left "+ rooms[room].name, "", true)
+      } else {
+        appendMessage("Failed to leave room")
+      }
     }
     if (rooms[newRoom] != undefined) {
       isInRoom = true
-      console.log('new-user', newRoom, currentPlayerName)
-      appendMessage("You joined " + rooms[newRoom].name + " as " + currentPlayerName, "", true)
-      console.log(chatSocket.emit('new-user', newRoom, currentPlayerName))
+      const room = newRoom
+      const name = currentPlayerName
+      const response2 = await chatSocket.emit('new-user', room, name)
+      if (response2.connected) {
+        appendMessage("You joined " + rooms[room].name + " as " + name, "", true)
+      } else {
+        appendMessage("Failed to join room")
+      }
     } else {
       isInRoom = false
     }
@@ -231,13 +243,27 @@ function initChat() {
   }
 
 
-  function sendMessage(message) {
-    appendMessage(currentPlayerName + ":", message, true)
-    chatSocket.emit('send-chat-message', currentRoom, message)
+  async function sendMessage(message) {
+    if (!isInRoom) {
+      appendMessage("Cannot send message - no room connected")
+      return
+    }
+    if (message == "") return
+    const name = currentPlayerName
+    const response = await chatSocket.emit('send-chat-message', currentRoom, message)
+    if (response.connected) {
+      appendMessage(name + ":", message, true)
+    } else {
+      appendMessage("Failed sending message")
+    }
   }
 
   chatSocket.on('chat-message', data => {
     appendMessage(data.name + ":", data.message, false)
+  })
+
+  chatSocket.on('server-message', message => {
+    appendMessage("", message)
   })
 
   chatSocket.on('user-connected', name => {
