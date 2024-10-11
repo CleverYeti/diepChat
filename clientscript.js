@@ -89,41 +89,60 @@ function initChat() {
 
   `
 
+
+  
   const regions = {
-      "atl": "Atlanta",
-      "lax": "Los Angeles",
-      "fra": "Frankfurt",
-      "osa": "Osaka",
-      "syd": "Sydney"
+    "atl": "Atlanta",
+    "lax": "Los Angeles",
+    "fra": "Frankfurt",
+    "osa": "Osaka",
+    "syd": "Sydney"
   }
   const gameModes = {
-      "ffa": "FFA",
-      "teams": "2TDM",
-      "4teams": "4TDM",
-      "event": "Event",
-      "maze": "Maze"
+    "ffa": "FFA",
+    "teams": "2TDM",
+    "4teams": "4TDM",
+    "event": "Event",
+    "maze": "Maze"
   }
-
+  
   let rooms = {}
   for (let [regionCode, regionName] of Object.entries(regions)) {
-      for (let [gameModeCode, gameModeName] of Object.entries(gameModes)) {
-          rooms[regionCode+"-"+gameModeCode] = {name: regionName+" " +gameModeName}
-      }
+    for (let [gameModeCode, gameModeName] of Object.entries(gameModes)) {
+      rooms[regionCode+"-"+gameModeCode] = {name: regionName+" " +gameModeName}
+    }
   }
-
+  
   let isChatOpen = false
   let isInRoom = false
   let currentRoom = ""
   let currentPlayerName = ""
+  let lastPlayerCountTime = Date.now()
+  let currentPlayerCount = 0
+  
+  const maxAcceptableInterval = 30000
+  const connectionCheckInterval = 10000
+
+  const version = "1.1";
+
+  // check version
+  (async function() {
+    const response = await fetch("https://raw.githubusercontent.com/CleverYeti/diepChat/refs/heads/main/version.json")
+    const json = await response.json()
+    if (version != json.version) {
+      appendMessage("", "Your version of DiepChat (v" + version + ") is out of date, it may not work properly. You can download the new version (v" + json.version + ") from https://github.com/CleverYeti/diepchat")
+    }
+  })()
+  
 
   let chatStyleEl = document.createElement("style")
   chatStyleEl.innerHTML = style
   document.body.appendChild(chatStyleEl)
-
+  
   let chatEl = document.createElement("div")
   chatEl.id = "chat"
   document.body.appendChild(chatEl)
-
+  
   let chatInputEl = document.createElement("input")
   chatInputEl.classList.add("input")
   chatInputEl.type = "text"
@@ -135,14 +154,14 @@ function initChat() {
   chatInputEl.addEventListener("focus", ()=>{
     isChatOpen = true
   })
-
+  
   document.addEventListener("keydown", (event) => {
     const isInGame = document.querySelector("#in-game-screen.active") != null
     const isTypingName = document.querySelector("#spawn-nickname:focus") != null
-
+    
     if (isChatOpen) event.stopPropagation()
-    if (event.key == "Enter") {
-      if (isChatOpen) {
+      if (event.key == "Enter") {
+        if (isChatOpen) {
         console.log("send")
         sendMessage(chatInputEl.value)
         chatInputEl.value = ""
@@ -258,6 +277,7 @@ function initChat() {
     }
   }
 
+
   chatSocket.on('chat-message', data => {
     appendMessage(data.name + ":", data.message, false)
   })
@@ -273,7 +293,20 @@ function initChat() {
   chatSocket.on('user-disconnected', name => {
     appendMessage(name + " left the chat", "", false)
   })
+
+  chatSocket.on('connection-check', playerCount => {
+    console.log("playerCount", playerCount)
+    lastPlayerCountTime = Date.now()
+    if (playerCount != currentPlayerCount) {
+      currentPlayerCount = playerCount
+      appendMessage("", playerCount + " players are in chat", false)
+    }
+  })
+
+  setInterval(() => {
+    if (!isInRoom) return
+    if (Date.now() - lastPlayerCountTime > maxAcceptableInterval) {
+      appendMessage("", "No message from server in the last "+ Math.floor((Date.now() - lastPlayerCountTime)/1000) + " seconds, chat may have disconnected", false)
+    }
+  }, connectionCheckInterval)
 }
-
-
-
