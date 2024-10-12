@@ -124,7 +124,7 @@ function initChat() {
   const maxAcceptableInterval = 30000
   const connectionCheckInterval = 10000
 
-  const version = "1.1";
+  const version = "1.2";
 
   // check version
   (async function() {
