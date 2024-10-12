@@ -238,6 +238,7 @@ function initChat() {
 
   async function updateConnection(newRoom) {
     console.log("connection update")
+    lastPlayerCountTime = Date.now()
     if (isInRoom) {
       const room = currentRoom
       const response1 = await chatSocket.emit('send-user-disconnected', room, currentPlayerName)
@@ -272,6 +273,7 @@ function initChat() {
     appendMessage("disconnected")
     await chatSocket.connect()
     appendMessage("connected")
+    lastPlayerCountTime = Date.now()
     isConnected = true
   }
 
@@ -316,7 +318,7 @@ function initChat() {
     lastPlayerCountTime = Date.now()
     if (playerCount != currentPlayerCount) {
       currentPlayerCount = playerCount
-      appendMessage("", playerCount + " players are in chat", false)
+      appendMessage("", (playerCount - 1) + " other players are in chat", false)
     }
   })
 
