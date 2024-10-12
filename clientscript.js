@@ -119,6 +119,7 @@ function initChat() {
   let currentPlayerName = ""
   let lastPlayerCountTime = Date.now()
   let currentPlayerCount = 0
+  let isConnected = true
   
   const maxAcceptableInterval = 30000
   const connectionCheckInterval = 10000
@@ -207,7 +208,8 @@ function initChat() {
 
   setInterval(refreshRoom, 1000)
 
-  function refreshRoom() { // when clicking play
+  function refreshRoom() {
+    if (!isConnected) return
     const isInGame = document.querySelector("#in-game-screen.active") != null
     if (!isInGame) return    
     
@@ -261,8 +263,23 @@ function initChat() {
     currentRoom = newRoom
   }
 
+  async function reconnect() {
+    isConnected = false
+    isInRoom = false
+    currentRoom = ""
+    appendMessage("reconnecting")
+    await chatSocket.disconnect()
+    appendMessage("disconnected")
+    await chatSocket.connect()
+    appendMessage("connected")
+    isConnected = true
+  }
 
   async function sendMessage(message) {
+    if (message == "/reconnect") {
+      reconnect()
+      return
+    }
     if (!isInRoom) {
       appendMessage("Cannot send message - no room connected")
       return
@@ -306,7 +323,7 @@ function initChat() {
   setInterval(() => {
     if (!isInRoom) return
     if (Date.now() - lastPlayerCountTime > maxAcceptableInterval) {
-      appendMessage("", "No message from server in the last "+ Math.floor((Date.now() - lastPlayerCountTime)/1000) + " seconds, chat may have disconnected", false)
+      appendMessage("", "No message from server in the last "+ Math.floor((Date.now() - lastPlayerCountTime)/1000) + " seconds, chat may have disconnected. Send /reconnect to try reconnecting", false)
     }
   }, connectionCheckInterval)
 }
