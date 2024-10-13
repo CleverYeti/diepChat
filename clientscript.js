@@ -18,8 +18,6 @@ setTimeout(()=>{
   addScript("https://raw.githubusercontent.com/CleverYeti/diepChat/refs/heads/main/socket.io.js")
 },2000)
 
-
-
 setTimeout(initChat, 5000)
 function initChat() {
   console.log("initialising diep chat")
@@ -124,7 +122,7 @@ function initChat() {
   const maxAcceptableInterval = 30000
   const connectionCheckInterval = 10000
 
-  const version = "1.2";
+  const version = "1.3";
 
   // check version
   (async function() {
@@ -270,9 +268,13 @@ function initChat() {
     currentRoom = ""
     appendMessage("reconnecting")
     await chatSocket.disconnect()
+    await new Promise(resolve => setTimeout(resolve, 500));
     appendMessage("disconnected")
     await chatSocket.connect()
+    await new Promise(resolve => setTimeout(resolve, 500));
     appendMessage("connected")
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
     lastPlayerCountTime = Date.now()
     isConnected = true
   }
