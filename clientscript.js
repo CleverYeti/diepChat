@@ -118,11 +118,12 @@ function initChat() {
   let lastPlayerCountTime = Date.now()
   let currentPlayerCount = 0
   let isConnected = true
+  let isReconnecting = false
   
   const maxAcceptableInterval = 30000
   const connectionCheckInterval = 10000
 
-  const version = "1.3";
+  const version = "1.4";
 
   // check version
   (async function() {
@@ -263,6 +264,8 @@ function initChat() {
   }
 
   async function reconnect() {
+    if (isReconnecting) return
+    isReconnecting = true
     isConnected = false
     isInRoom = false
     currentRoom = ""
@@ -277,6 +280,7 @@ function initChat() {
     
     lastPlayerCountTime = Date.now()
     isConnected = true
+    isReconnecting = false
   }
 
   async function sendMessage(message) {
@@ -327,7 +331,8 @@ function initChat() {
   setInterval(() => {
     if (!isInRoom) return
     if (Date.now() - lastPlayerCountTime > maxAcceptableInterval) {
-      appendMessage("", "No message from server in the last "+ Math.floor((Date.now() - lastPlayerCountTime)/1000) + " seconds, chat may have disconnected. Send /reconnect to try reconnecting", false)
+      appendMessage("", "Lost connection to chat server", false)
+      reconnect()
     }
   }, connectionCheckInterval)
 }
