@@ -123,7 +123,7 @@ function initChat() {
   const maxAcceptableInterval = 30000
   const connectionCheckInterval = 10000
 
-  const version = "1.4";
+  const version = "1.5";
 
   // check version
   (async function() {
@@ -256,6 +256,8 @@ function initChat() {
         appendMessage("You joined " + rooms[room].name + " as " + name, "", true)
       } else {
         appendMessage("Failed to join room")
+        appendMessage("The chat server is probably starting up (wait 2m)")
+        appendMessage("Type /reconnect to retry")
       }
     } else {
       isInRoom = false
@@ -269,13 +271,10 @@ function initChat() {
     isConnected = false
     isInRoom = false
     currentRoom = ""
-    appendMessage("reconnecting")
     await chatSocket.disconnect()
     await new Promise(resolve => setTimeout(resolve, 500));
-    appendMessage("disconnected")
     await chatSocket.connect()
     await new Promise(resolve => setTimeout(resolve, 500));
-    appendMessage("connected")
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     lastPlayerCountTime = Date.now()
@@ -285,6 +284,7 @@ function initChat() {
 
   async function sendMessage(message) {
     if (message == "/reconnect") {
+      appendMessage("reconnecting")
       reconnect()
       return
     }
@@ -331,7 +331,7 @@ function initChat() {
   setInterval(() => {
     if (!isInRoom) return
     if (Date.now() - lastPlayerCountTime > maxAcceptableInterval) {
-      appendMessage("", "Lost connection to chat server", false)
+      appendMessage("", "No connection to chat server, reconnecting", false)
       reconnect()
     }
   }, connectionCheckInterval)
