@@ -22,7 +22,6 @@ setTimeout(initChat, 5000)
 function initChat() {
   console.log("initialising diep chat")
 
-  const messageDuration = 10
   const chatSocket = io('https://diep-chat.onrender.com/')
 
   const style = `
@@ -69,8 +68,13 @@ function initChat() {
     color: white;
     gap:  calc(10 * var(--ui-scale));
     padding: calc(2 * var(--ui-scale)) calc(10 * var(--ui-scale));
-    width: 100%;
+    width: calc(100% - 10 * var(--ui-scale));
   }
+  
+  #chat:not(:has(.input:focus)) > .message.expired {
+    display: none;
+  }
+
 
   #chat > .message > .playerName {
     -webkit-text-stroke: 1px white;
@@ -124,7 +128,10 @@ function initChat() {
   const connectionCheckInterval = 10000
   const keepAliveInterval = 15000
 
-  const version = "1.6";
+  const messageDuration = 10
+  const chatHistoryLength = 50
+
+  const version = "1.7";
 
   // check version
   (async function() {
@@ -202,8 +209,11 @@ function initChat() {
 
     chatEl.insertBefore(messageEl, chatInputEl)
     setTimeout(()=>{
-      messageEl.remove()
+      messageEl.classList.add("expired")
     }, messageDuration * 1000)
+    if (chatEl.children.length > chatHistoryLength + 1) {
+      chatEl.children[0].remove()
+    }
   }
 
   setInterval(refreshRoom, 1000)
